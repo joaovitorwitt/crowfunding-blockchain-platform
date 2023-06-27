@@ -15,17 +15,65 @@ contract CrowdFunding {
         uint[] donations;
     }
 
-    mapping (uint=> Campaign) public campaings;
+    mapping (uint => Campaign) public campaings;
 
     uint public numberOfCampaings = 0;
 
 
-    function createCampaign() {}
+    function createCampaign(
+        address _owner,
+        string memory _title,
+        string memory _description,
+        uint _target,
+        uint _deadline,
+        string memory _image) public returns (uint)
+    {
+        Campaign storage campaign = campaings[numberOfCampaings];
 
-    function donateToCampaign() {}
+        require(campaign.deadline < block.timestamp, "The deadline should be a date in the future.");
 
-    function getDonators() {}
+        campaign.owner = _owner;
+        campaign.title = _title;
+        campaign.description = _description;
+        campaign.target = _target;
+        campaign.deadline = _deadline;
+        campaign.amountCollected = 0;
+        campaign.image = _image;
+    
+        numberOfCampaings++;    
 
-    function getCampaigns() {}
+        return numberOfCampaings - 1;
+    }
+
+    function donateToCampaign(uint _id) public payable {
+        uint amount = msg.value;
+
+        Campaign storage campaign = campaings[_id];
+
+        campaign.donators.push(msg.sender);
+        campaign.donations.push(amount);
+
+        (bool sent, ) = payable(campaign.owner).call{value: amount}("");
+
+        if (sent) {
+            campaign.amountCollected = campaign.amountCollected + amount;
+        }
+    }
+
+    function getDonators(uint _id) view public returns(address[] memory, uint[] memory) {
+        return (campaings[_id].donators, campaings[_id].donations);
+    }
+
+    function getCampaigns() public view returns(Campaign[] memory) {
+        Campaign[] memory allCampaigns = new Campaign[](numberOfCampaings); 
+
+        for (uint i = 0; i < numberOfCampaings; i++) {
+            Campaign storage item = campaings[i];
+
+            allCampaigns[i] = item;
+        }
+
+        return allCampaigns;
+    }
     
 }
